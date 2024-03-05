@@ -2,6 +2,10 @@
   "name": "commit-bot",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "format": "bunx @biomejs/biome format . --write",
+    "lint": "bunx @biomejs/biome lint ."
+  },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
     "@types/bun": "latest"
