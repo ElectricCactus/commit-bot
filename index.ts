@@ -35,6 +35,7 @@ async function run() {
 			"Stage changes with `git add .`? [y/N]",
 		)
 		if (should_stage_response.value?.toLowerCase() === "y") {
+			await Bun.write(Bun.stdout, `git add .${EOL}`)
 			await $`git add .`
 		} else {
 			await Bun.write(Bun.stdout, `🆗 Using working changes...${EOL}`)
@@ -82,18 +83,16 @@ async function run() {
 		throw new Error("User declined content")
 	}
 
+	await Bun.write(Bun.stdout, `g commit${EOL}`)
 	await $`git commit -m ${message}`
-
-	await Bun.write(Bun.stdout, `🎉 Committed!${EOL}`)
 
 	const push_response = createPrompt("Push to origin? [Y/n]")
 	if (push_response.value?.toLowerCase() === "n") {
 		throw new Error("User declined push")
 	}
 
-	await $`git push origin HEAD`
-
-	await Bun.write(Bun.stdout, `🚀 Pushed!${EOL}`)
+	await Bun.write(Bun.stdout, `g push${EOL}`)
+	await $`git push`
 }
 
 await run().catch((err) => {
