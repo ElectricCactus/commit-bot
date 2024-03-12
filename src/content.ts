@@ -1,9 +1,11 @@
 import { writeCommit } from "./ai"
-import { getRepoContext } from "./git"
+import { getDiff, getFileTree, getRepoName } from "./git"
 import { spin } from "./progress"
 
 export async function generateContent() {
-  const { diff, tree, repo } = await getRepoContext()
+  const repo = await getRepoName()
+  const tree = await getFileTree()
+  const { diff } = await getDiff()
 
   const message = spin(
     "Generating content...",

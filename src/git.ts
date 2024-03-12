@@ -1,23 +1,30 @@
 import { shellText } from "./shell"
 
-export async function getRepoContext() {
+export async function getFileTree() {
+  return shellText`git ls-tree -r HEAD --name-only`
+}
+
+export async function getRepoName() {
+  const regex = /\r?\n|\r/g
   const origin_name =
     await shellText`git remote get-url origin | awk -F'[:/]' '{gsub(/\.git$/, "", $NF); print $(NF-1)"/"$NF}'`
 
+  if (origin_name !== "") {
+    return origin_name.replaceAll(regex, "")
+  }
+
   const folder_name = await shellText`basename $(pwd)`
 
-  const cached_diff = await shellText`git diff --cached`
+  return folder_name.replaceAll(regex, "")
+}
+
+export async function getDiff() {
   const working_diff = await shellText`git diff`
-
-  const tree = await shellText`git ls-tree -r HEAD --name-only`
-
-  const repo = (origin_name !== "" ? origin_name : folder_name).replaceAll(
-    /\r?\n|\r/g,
-    "",
-  )
-
-  const is_cached = cached_diff !== ""
-  const diff = is_cached ? cached_diff : working_diff
-
-  return { cached_diff, working_diff, tree, repo, is_cached, diff }
+  const cached_diff = await shellText`git diff --cached`
+  return {
+    working_diff,
+    cached_diff,
+    is_cached: cached_diff !== "",
+    diff: cached_diff !== "" ? cached_diff : working_diff,
+  }
 }

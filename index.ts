@@ -1,15 +1,13 @@
 import { EOL } from "os"
-import { writeCommit } from "@/ai"
-import { getRepoContext } from "@/git"
 import { PromptError, createPrompt } from "@/prompts"
-import ora from "ora"
 import { ZodError } from "zod"
 import { fromZodError } from "zod-validation-error"
 import { shell } from "@/shell"
 import { generateContent } from "@/content"
+import { getDiff } from "@/git"
 
 async function run() {
-  const { is_cached } = await getRepoContext()
+  const { is_cached } = await getDiff()
 
   if (!is_cached) {
     await Bun.write(Bun.stdout, `⚠️ You have unstaged changes.${EOL}`)
