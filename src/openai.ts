@@ -1,6 +1,6 @@
 import { EventEmitter } from "events"
-import type { paths, components } from "./openai.d"
 import createClient from "openapi-fetch"
+import type { components, paths } from "./openai.d"
 
 const apiKey = process.env.OPENAI_API_KEY
 

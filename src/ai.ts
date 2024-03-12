@@ -1,11 +1,5 @@
 import { chatCompletions } from "./openai"
 
-type WriteCommitProps = {
-  repo: string
-  tree: string
-  diff: string
-}
-
 const USE_EMOJI = true
 
 const DEFAULT_SYSTEM_PROMPT = `
@@ -33,6 +27,12 @@ const DEFAULT_SYSTEM_PROMPT = `
 
 	\`tag tag tag tag tag\`
 `
+
+type WriteCommitProps = {
+  repo: string
+  tree: string
+  diff: string
+}
 
 export async function writeCommit({ repo, tree, diff }: WriteCommitProps) {
   const system_prompt = DEFAULT_SYSTEM_PROMPT
