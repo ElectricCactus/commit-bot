@@ -11,6 +11,7 @@ const USE_EMOJI = true
 const DEFAULT_SYSTEM_PROMPT = `
 	You write pull requests. Pull request should include a short conventional commits style title,
 	followed by a longer description what this PR is trying to solve. This should be plaintext. 
+	**Keep in mind, everything should be around 80 characters in length to keep the content quickly digestible.**
 	Keep verbage succint and to the point. Prefer bulleted lists over lengthy paragraphs.
 	You should generate tags, up to 5, relevant to this PR to aid in searchability.
 	Each line should be 80 characters or less. Don't include descriptions for changes due to

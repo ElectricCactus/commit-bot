@@ -2,45 +2,33 @@ import { writeCommit } from "@/ai"
 import { EOL } from "os"
 import { $ } from "bun"
 import ora from "ora"
-import { createPrompt } from "bun-promptx"
-
-async function getContext() {
-	const origin_name =
-		await $`git remote get-url origin | awk -F'[:/]' '{gsub(/\.git$/, "", $NF); print $(NF-1)"/"$NF}'`.text()
-
-	const folder_name = await $`basename $(pwd)`.text()
-
-	const cached_diff = await $`git diff --cached`.text()
-	const working_diff = await $`git diff`.text()
-
-	const tree = await $`git ls-tree -r HEAD --name-only`.text()
-
-	const repo = (origin_name !== "" ? origin_name : folder_name).replaceAll(
-		/\r?\n|\r/g,
-		"",
-	)
-
-	const is_cached = cached_diff !== ""
-
-	return { cached_diff, working_diff, tree, repo, is_cached }
-}
+import { fromZodError } from "zod-validation-error"
+import { getRepoContext } from "@/git"
+import { PromptCancelledError, PromptError, createPrompt } from "@/prompts"
+import { ZodError } from "zod"
 
 async function run() {
-	let { cached_diff, working_diff, tree, repo, is_cached } = await getContext()
+	let { cached_diff, working_diff, tree, repo, is_cached } =
+		await getRepoContext()
 
 	if (!is_cached) {
 		await Bun.write(Bun.stdout, `⚠️ You have unstaged changes.${EOL}`)
 
-		const should_stage_response = createPrompt(
-			"Stage changes with `git add .`? [y/N]",
-		)
-		if (should_stage_response.value?.toLowerCase() === "y") {
+		const { should_stage } = await createPrompt({
+			type: "confirm",
+			initial: true,
+			name: "should_stage",
+			message: "Stage changes with `git add .`?",
+		} as const)
+
+		if (should_stage) {
 			await Bun.write(Bun.stdout, `git add .${EOL}`)
 			await $`git add .`
 		} else {
 			await Bun.write(Bun.stdout, `🆗 Using working changes...${EOL}`)
 		}
-		;({ cached_diff, working_diff, tree, repo, is_cached } = await getContext())
+		;({ cached_diff, working_diff, tree, repo, is_cached } =
+			await getRepoContext())
 	}
 
 	const diff = is_cached ? cached_diff : working_diff
@@ -76,18 +64,26 @@ async function run() {
 
 	await Bun.write(Bun.stdout, EOL)
 
-	const confirm_response = createPrompt(
-		"Would you like to use this content? [Y/n]",
-	)
-	if (confirm_response.value?.toLowerCase() === "n") {
+	const { confirm_response } = await createPrompt({
+		type: "confirm",
+		initial: true,
+		name: "confirm_response",
+		message: "Would you like to use this content?",
+	} as const)
+	if (!confirm_response) {
 		throw new Error("User declined content")
 	}
 
 	await Bun.write(Bun.stdout, `g commit${EOL}`)
 	await $`git commit -m ${message}`
 
-	const push_response = createPrompt("Push to origin? [Y/n]")
-	if (push_response.value?.toLowerCase() === "n") {
+	const { push_response } = await createPrompt({
+		name: "push_response",
+		type: "confirm",
+		initial: true,
+		message: "Push to origin?",
+	} as const)
+	if (!push_response) {
 		throw new Error("User declined push")
 	}
 
@@ -95,8 +91,26 @@ async function run() {
 	await $`git push`
 }
 
+process.on("SIGINT", () => {
+	console.log("Ctrl-C was pressed")
+	process.exit()
+})
+
+function formatError<T>(err: T) {
+	if (err instanceof ZodError) {
+		return fromZodError(err).toString()
+	}
+	if (err instanceof PromptError) {
+		return `Prompt error: ${err.message}`
+	}
+	if (err instanceof Error) {
+		return err.message
+	}
+	return `${err}`
+}
+
 await run().catch((err) => {
-	console.error("🚨", err.message)
+	console.error("🚨", formatError(err))
 	process.exit(1)
 })
 
