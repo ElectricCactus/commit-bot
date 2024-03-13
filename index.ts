@@ -1,10 +1,10 @@
 import { EOL } from "os"
-import { PromptError, createPrompt } from "@/prompts"
-import { ZodError } from "zod"
-import { fromZodError } from "zod-validation-error"
-import { shell } from "@/shell"
 import { generateContent } from "@/content"
 import { getDiff } from "@/git"
+import { PromptError, createPrompt } from "@/prompts"
+import { shell } from "@/shell"
+import { ZodError } from "zod"
+import { fromZodError } from "zod-validation-error"
 
 async function run() {
   const { is_cached } = await getDiff()

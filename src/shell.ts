@@ -1,4 +1,4 @@
-import { $, ShellPromise, type Shell } from "bun"
+import { $, type Shell, ShellPromise } from "bun"
 import { spin } from "./progress"
 
 export const shell = (async (...params: Parameters<Shell>) => {
