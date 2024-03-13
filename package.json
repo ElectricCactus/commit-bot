@@ -9,7 +9,7 @@
     "types": "bunx openapi-typescript https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml --output src/openai.d.ts"
   },
   "bin": {
-    "commit-bot": "index.ts"
+    "commit-bot": "./commit-bot"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
