@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "compile": "bun build ./index.ts --compile --minify --outfile commit-bot",
+    "compile": "bun build ./index.ts --compile --minify --outfile dist/commit-bot",
     "format": "bunx @biomejs/biome format . --write && bunx @biomejs/biome check --apply .",
     "lint": "bunx @biomejs/biome lint .",
     "types": "bunx openapi-typescript https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml --output src/openai.d.ts"
