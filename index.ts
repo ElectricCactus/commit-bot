@@ -1,5 +1,5 @@
 import { EOL } from "os"
-import { generateContent } from "@/content"
+import { contentGenerator } from "@/content"
 import { getDiff } from "@/git"
 import { PromptError, createPrompt } from "@/prompts"
 import { shell } from "@/shell"
@@ -26,18 +26,35 @@ async function run() {
     }
   }
 
-  const message = await generateContent()
+  const content = await contentGenerator()
 
-  await Bun.write(Bun.stdout, EOL)
+  let message: string
+  let feedback: string | undefined
 
-  const { confirm_response } = await createPrompt({
-    type: "confirm",
-    initial: true,
-    name: "confirm_response",
-    message: "Would you like to use this content?",
-  } as const)
-  if (!confirm_response) {
-    throw new Error("User declined content")
+  while (true) {
+    message = await content.generate(feedback)
+
+    await Bun.write(Bun.stdout, EOL)
+
+    const { confirm_response } = await createPrompt({
+      type: "confirm",
+      initial: true,
+      name: "confirm_response",
+      message: "Does the content look good?",
+    } as const)
+    if (confirm_response) {
+      break
+    }
+
+    const { new_message } = await createPrompt({
+      type: "text",
+      name: "new_message",
+      message: "Feedback: ",
+    } as const)
+
+    feedback = new_message
+
+    await Bun.write(Bun.stdout, `🔄 Applying feedback...${EOL}`)
   }
 
   await shell`git commit -m ${message}`
@@ -56,8 +73,8 @@ async function run() {
 }
 
 process.on("SIGINT", () => {
-  console.log("Ctrl-C was pressed")
-  process.exit()
+  console.error("🚨 Aborted")
+  process.exit(1)
 })
 
 function formatError<T>(err: T) {
@@ -73,9 +90,9 @@ function formatError<T>(err: T) {
   return `${err}`
 }
 
-await run().catch((err) => {
-  console.error("🚨", formatError(err))
-  process.exit(1)
-})
-
-console.log("👋 goodbye")
+await run()
+  .catch((err) => {
+    console.error("🚨", formatError(err))
+    process.exit(1)
+  })
+  .finally(() => Bun.write(Bun.stdout, `👋 goodbye ${EOL}`))

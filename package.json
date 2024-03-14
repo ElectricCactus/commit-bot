@@ -2,14 +2,14 @@
   "name": "commit-bot",
   "module": "index.ts",
   "type": "module",
+  "bin": {
+    "commit-bot": "./commit-bot"
+  },
   "scripts": {
     "compile": "bun build ./index.ts --compile --minify --outfile dist/commit-bot",
     "format": "bunx @biomejs/biome format . --write && bunx @biomejs/biome check --apply .",
     "lint": "bunx @biomejs/biome lint .",
     "types": "bunx openapi-typescript https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml --output src/openai.d.ts"
-  },
-  "bin": {
-    "commit-bot": "./commit-bot"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",

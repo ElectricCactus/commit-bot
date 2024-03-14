@@ -1,47 +1,61 @@
-import { writeCommit } from "./ai"
+import { writePR } from "./ai"
 import { getDiff, getFileTree, getRepoName } from "./git"
 import { spin } from "./progress"
 
-export async function generateContent() {
+export async function contentGenerator() {
   const repo = await getRepoName()
   const tree = await getFileTree()
   const { diff } = await getDiff()
 
-  const message = spin(
-    "Generating content...",
-    async (spinner) => {
-      const { emitter, start } = await writeCommit({ repo, tree, diff })
+  const generator = await writePR({ repo, tree, diff })
 
-      let message = ""
+  return {
+    async generate(feedback?: string) {
+      const { value, done } = await generator.next(
+        ...(feedback ? [feedback] : []),
+      )
 
-      emitter.on("data", async (data) => {
-        if (
-          (data.choices && data.choices.length === 0) ||
-          !data.choices[0].delta.content
-        )
-          return
+      if (done) throw new Error("Cannot generate content, conversation ended")
 
-        const { content } = data.choices[0].delta
+      const { emitter, start } = value
 
-        message += content
+      return spin(
+        "Generating content...",
+        async (spinner) => {
+          let message = ""
 
-        spinner.suffixText = `\n\n${message}`
-      })
+          emitter.on("data", async (data) => {
+            if (
+              (data.choices && data.choices.length === 0) ||
+              !data.choices[0].delta.content
+            )
+              return
 
-      emitter.on("unknown", (unknown) => {
-        console.dir({ unknown }, { depth: null })
-      })
+            const { content } = data.choices[0].delta
 
-      await start()
+            message += content
 
-      return message
+            spinner.suffixText = `\n\n${message}`
+          })
+
+          emitter.on("unknown", (unknown) => {
+            console.dir({ unknown }, { depth: null })
+          })
+
+          emitter.on("get_message", () => emitter.emit("message", message))
+
+          await start()
+
+          emitter.emit("message", message)
+
+          return message
+        },
+        {
+          onSucceed() {
+            return "Content generated!"
+          },
+        },
+      )
     },
-    {
-      onSucceed() {
-        return "Content generated!"
-      },
-    },
-  )
-
-  return message
+  }
 }

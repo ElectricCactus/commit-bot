@@ -15,7 +15,7 @@ export const client = createClient<paths>({
   },
 })
 
-type ChatCompletionsProps = {
+export type ChatCompletionsProps = {
   model: string
   messages: components["schemas"]["ChatCompletionRequestMessage"][]
 }
@@ -30,16 +30,26 @@ type ChatCompletionEmitter = Omit<EventEmitter, "on" | "emit"> & {
     listener: (data: ChatCompletionStreamResponse) => void,
   ): void
   on(event: "done", listener: () => void): void
+  on(event: "message", listener: (data: string) => void): void
+  on(event: "get_message", listener: () => void): void
 
   emit(event: "unknown", data: unknown): boolean
   emit(event: "data", data: ChatCompletionStreamResponse): boolean
   emit(event: "done"): boolean
+  emit(event: "message", data: string): boolean
+  emit(event: "get_message"): boolean
+}
+
+export type ChatCompletionResult = {
+  response: Response
+  emitter: ChatCompletionEmitter
+  start: () => Promise<void>
 }
 
 export async function chatCompletions({
   model,
   messages,
-}: ChatCompletionsProps) {
+}: ChatCompletionsProps): Promise<ChatCompletionResult> {
   const { response } = await client.POST("/chat/completions", {
     parseAs: "stream",
     body: {
@@ -62,7 +72,6 @@ export async function chatCompletions({
 
   return {
     response,
-    reader,
     emitter,
     async start() {
       let done = false
@@ -98,6 +107,24 @@ export async function chatCompletions({
           }
         }
       }
+
+      emitter.emit("done")
     },
+  }
+}
+
+export type ConversationGenerator = AsyncGenerator<
+  ChatCompletionResult,
+  void,
+  Omit<ChatCompletionsProps, "model">
+>
+
+export async function* startConversation({
+  model,
+  ...props
+}: ChatCompletionsProps): ConversationGenerator {
+  let next: Omit<ChatCompletionsProps, "model"> = props
+  while (true) {
+    next = yield await chatCompletions({ ...next, model })
   }
 }
