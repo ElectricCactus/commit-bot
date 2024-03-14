@@ -1,3 +1,5 @@
+#! /usr/bin/env bun
+
 import { EOL } from "os"
 import { contentGenerator } from "@/content"
 import { getDiff } from "@/git"
