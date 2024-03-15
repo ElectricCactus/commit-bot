@@ -28,3 +28,7 @@ export async function getDiff() {
     diff: cached_diff !== "" ? cached_diff : working_diff,
   }
 }
+
+export async function getStatus() {
+  return shellText`git status`
+}

@@ -45,11 +45,45 @@ type PullRequestContext = {
 
 type Message = ChatCompletionsProps["messages"][number]
 
-export async function* writePR({
-  repo,
-  tree,
-  diff,
-}: PullRequestContext): AsyncGenerator<ChatCompletionResult, void, string> {
+type CodeChatProps = {
+  messages: Message[]
+  model: string
+}
+
+export async function* codeChat(
+  props: CodeChatProps,
+): AsyncGenerator<ChatCompletionResult, void, string> {
+  const conversation = await startConversation(props)
+
+  let next = await conversation.next()
+
+  while (!next.done) {
+    const [[system_message], user_message]: [string[], string, boolean] =
+      await Promise.all([
+        once(next.value.emitter, "message"),
+        yield next.value,
+        next.value.emitter.emit("get_message"),
+      ])
+
+    let messages: Message[] = [
+      {
+        role: "system",
+        content: system_message,
+      },
+      {
+        role: "user",
+        content: user_message,
+      },
+    ]
+
+    props.messages.push(...messages)
+    messages = props.messages
+
+    next = await conversation.next({ messages })
+  }
+}
+
+export async function writePR({ repo, tree, diff }: PullRequestContext) {
   const model = "gpt-4-turbo-preview"
   const messages: Message[] = [
     {
@@ -61,31 +95,23 @@ export async function* writePR({
       content: `The repo name is ${repo}, the file tree is ${tree}, and the diff is ${diff}`,
     },
   ]
-  const conversation = await startConversation({ model, messages })
 
-  let next = await conversation.next()
+  return await codeChat({ model, messages })
+}
 
-  while (!next.done) {
-    const user_message = yield next.value
+export async function branchName({ repo, tree, diff }: PullRequestContext) {
+  const model = "gpt-4-turbo-preview"
+  const messages: Message[] = [
+    {
+      role: "system",
+      content:
+        "Your role is to generate a branch name based on the provided context.",
+    },
+    {
+      role: "user",
+      content: `The repo name is ${repo}, the file tree is ${tree}, and the diff is ${diff}`,
+    },
+  ]
 
-    const [[system_message]]: [string[], boolean] = await Promise.all([
-      once(next.value.emitter, "message"),
-      next.value.emitter.emit("get_message"),
-    ])
-
-    messages.push(
-      ...[
-        {
-          role: "system" as const,
-          content: system_message,
-        },
-        {
-          role: "user" as const,
-          content: user_message,
-        },
-      ],
-    )
-
-    next = await conversation.next({ messages })
-  }
+  return await codeChat({ model, messages })
 }

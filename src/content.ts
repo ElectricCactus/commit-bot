@@ -11,8 +11,8 @@ export async function contentGenerator() {
 
   return {
     async generate(feedback?: string) {
-      const { value, done } = await generator.next(
-        ...(feedback ? [feedback] : []),
+      const { value, done } = await spin("Thinking...", () =>
+        generator.next(...(feedback ? [feedback] : [])),
       )
 
       if (done) throw new Error("Cannot generate content, conversation ended")

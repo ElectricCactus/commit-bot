@@ -2,7 +2,7 @@
 
 import { EOL } from "os"
 import { contentGenerator } from "@/content"
-import { getDiff } from "@/git"
+import { getDiff, getStatus } from "@/git"
 import { PromptError, createPrompt } from "@/prompts"
 import { shell } from "@/shell"
 import { ZodError } from "zod"
@@ -13,6 +13,8 @@ async function run() {
 
   if (!is_cached) {
     await Bun.write(Bun.stdout, `⚠️ You have unstaged changes.${EOL}`)
+
+    await Bun.write(Bun.stdout, await getStatus())
 
     const { should_stage } = await createPrompt({
       type: "confirm",
