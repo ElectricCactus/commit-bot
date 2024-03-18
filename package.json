@@ -5,8 +5,9 @@
   "bin": {
     "commit-bot": "./index.ts"
   },
+  "version": "0.0.1",
   "scripts": {
-    "compile": "bun build ./index.ts --compile --outfile=bin/commit-bot",
+    "compile": "bun build --compile --minify --sourcemap ./index.ts --outfile=bin/commit-bot",
     "format": "bunx @biomejs/biome format . --write && bunx @biomejs/biome check --apply .",
     "lint": "bunx @biomejs/biome lint .",
     "types": "bunx openapi-typescript https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml --output src/openai.d.ts"

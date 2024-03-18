@@ -1,14 +1,34 @@
 #! /usr/bin/env bun
 
 import { EOL } from "os"
+import { parseArgs } from "util"
 import { contentGenerator } from "@/content"
 import { getDiff, getStatus } from "@/git"
 import { PromptError, createPrompt } from "@/prompts"
 import { shell } from "@/shell"
 import { ZodError } from "zod"
 import { fromZodError } from "zod-validation-error"
+import packageJson from "./package.json"
 
 async function run() {
+  const { values } = parseArgs({
+    options: {
+      version: {
+        type: "boolean",
+        short: "v",
+      },
+    },
+    args: Bun.argv,
+    strict: true,
+    allowPositionals: true,
+  })
+
+  if (values.version) {
+    const version = "version" in packageJson ? packageJson.version : "0.0.0"
+    console.log(version)
+    process.exit(0)
+  }
+
   const { is_cached } = await getDiff()
 
   if (!is_cached) {
