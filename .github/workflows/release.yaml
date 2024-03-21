@@ -11,6 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
+      - name: "Install"
+        run: bun install --frozen-lockfile
       - name: "Release Script"
         run: bun release
       - name: "Create Release"
