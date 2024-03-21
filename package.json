@@ -10,7 +10,8 @@
     "compile": "bun build --compile --minify --sourcemap ./index.ts --outfile=bin/commit-bot",
     "format": "bunx @biomejs/biome format . --write && bunx @biomejs/biome check --apply .",
     "lint": "bunx @biomejs/biome lint .",
-    "types": "bunx openapi-typescript https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml --output src/openai.d.ts"
+    "types": "bunx openapi-typescript https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml --output src/openai.d.ts",
+    "release": "./src/scripts/release.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",

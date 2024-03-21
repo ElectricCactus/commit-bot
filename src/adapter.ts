@@ -1,6 +1,6 @@
 import { EventEmitter } from "events"
-import { factoryStartConversationOpenAI } from "./openai"
 import { factoryStartConversationClaude } from "./anthropic"
+import { factoryStartConversationOpenAI } from "./openai"
 
 export type ConversationMessage =
   | { role: "system"; content: string }
