@@ -2,7 +2,7 @@
 
 import { EOL } from "os"
 import { parseArgs } from "util"
-import { contentGenerator } from "@/content"
+import { branchGenerator, contentGenerator } from "@/content"
 import { getDiff, getStatus } from "@/git"
 import { PromptError, createPrompt } from "@/prompts"
 import { shell } from "@/shell"
@@ -17,6 +17,10 @@ async function run() {
         type: "boolean",
         short: "v",
       },
+      branch: {
+        type: "boolean",
+        short: "b",
+      },
     },
     args: Bun.argv,
     strict: true,
@@ -26,6 +30,15 @@ async function run() {
   if (values.version) {
     const version = "version" in packageJson ? packageJson.version : "0.0.0"
     console.log(version)
+    process.exit(0)
+  }
+
+  if (values.branch) {
+    const branch = await branchGenerator({
+      adapter: "claude_fast",
+    })
+    console.log("‼️ Experimental feature")
+    await branch.generate()
     process.exit(0)
   }
 
@@ -50,7 +63,9 @@ async function run() {
     }
   }
 
-  const content = await contentGenerator()
+  const content = await contentGenerator({
+    adapter: "claude_fast",
+  })
 
   let message: string
   let feedback: string | undefined
@@ -109,7 +124,7 @@ function formatError<T>(err: T) {
     return `Prompt error: ${err.message}`
   }
   if (err instanceof Error) {
-    return err.message
+    return err.stack
   }
   return `${err}`
 }

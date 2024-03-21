@@ -1,130 +1,123 @@
-import { EventEmitter } from "events"
 import createClient from "openapi-fetch"
 import type { components, paths } from "./openai.d"
+import {
+  ConversationSignal,
+  createConversation,
+  type ConversationResult,
+  type ConversationMessage,
+  type ConversationGenerator,
+} from "./adapter"
 
-const apiKey = process.env.OPENAI_API_KEY
+let client: ReturnType<typeof createClient<paths>> | undefined
 
-if (!apiKey) {
-  throw new Error("OPENAI_API_KEY is required")
-}
+function getClient() {
+  if (!client) {
+    const apiKey = process.env.OPENAI_API_KEY
 
-export const client = createClient<paths>({
-  baseUrl: "https://api.openai.com/v1",
-  headers: {
-    Authorization: `Bearer ${apiKey}`,
-  },
-})
-
-export type ChatCompletionsProps = {
-  model: string
-  messages: components["schemas"]["ChatCompletionRequestMessage"][]
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY is required")
+    }
+    client = createClient<paths>({
+      baseUrl: "https://api.openai.com/v1",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    })
+  }
+  return client
 }
 
 type ChatCompletionStreamResponse =
   components["schemas"]["CreateChatCompletionStreamResponse"]
 
-type ChatCompletionEmitter = Omit<EventEmitter, "on" | "emit"> & {
-  on(event: "unknown", listener: (data: unknown) => void): void
-  on(
-    event: "data",
-    listener: (data: ChatCompletionStreamResponse) => void,
-  ): void
-  on(event: "done", listener: () => void): void
-  on(event: "message", listener: (data: string) => void): void
-  on(event: "get_message", listener: () => void): void
-
-  emit(event: "unknown", data: unknown): boolean
-  emit(event: "data", data: ChatCompletionStreamResponse): boolean
-  emit(event: "done"): boolean
-  emit(event: "message", data: string): boolean
-  emit(event: "get_message"): boolean
+type ChatCompletionProps = {
+  model: string
+  messages: ConversationMessage[]
 }
 
-export type ChatCompletionResult = {
-  response: Response
-  emitter: ChatCompletionEmitter
-  start: () => Promise<void>
-}
-
-export async function chatCompletions({
+async function chatCompletions({
   model,
   messages,
-}: ChatCompletionsProps): Promise<ChatCompletionResult> {
-  const { response } = await client.POST("/chat/completions", {
-    parseAs: "stream",
-    body: {
-      model,
-      messages,
-      stream: true,
-      temperature: 0.4,
-      frequency_penalty: 1.2,
-    },
-  })
+}: ChatCompletionProps): Promise<ConversationResult> {
+  return createConversation({
+    async setup() {
+      const { response } = await getClient().POST("/chat/completions", {
+        parseAs: "stream",
+        body: {
+          model,
+          messages,
+          stream: true,
+          temperature: 0.4,
+          frequency_penalty: 1.2,
+        },
+      })
 
-  const reader = response.body?.getReader()
+      const reader = response.body?.getReader()
 
-  if (!response.ok || !response.body || !reader) {
-    throw new Error("Chat completions failed")
-  }
+      if (!response.ok || !response.body || !reader) {
+        throw new Error("Conversation failed")
+      }
 
-  const emitter = new EventEmitter() as ChatCompletionEmitter
-  const decoder = new TextDecoder()
+      const decoder = new TextDecoder()
 
-  return {
-    response,
-    emitter,
-    async start() {
-      let done = false
-      let value: Uint8Array | undefined
+      async function* read(r: NonNullable<typeof reader>) {
+        while (true) {
+          const { done, value } = await r.read()
 
-      while (!done) {
-        ;({ done, value } = await reader.read())
-
-        if (done) {
-          break
-        }
-
-        const text = decoder.decode(value).trim()
-        const lines = text.split("\n")
-
-        for (const line of lines) {
-          let chunk = line
-          while (chunk.startsWith("data:")) {
-            chunk = chunk.slice("data:".length).trim()
+          if (done) {
+            return
           }
 
-          if (chunk === "" || chunk === "[DONE]") {
-            continue
-          }
+          const lines = decoder
+            .decode(value, { stream: true })
+            .trim()
+            .split("\n")
 
-          try {
-            const json = JSON.parse(chunk) as ChatCompletionStreamResponse
+          for (let line of lines) {
+            if (line.startsWith("data:")) {
+              line = line.slice(5).trim()
+            }
 
-            emitter.emit("data", json)
-          } catch (err) {
-            console.error("failed to parse", chunk, err)
-            emitter.emit("unknown", chunk)
+            if (line === "[DONE]" || line === "") continue
+
+            const event = JSON.parse(line) as ChatCompletionStreamResponse
+
+            yield event
           }
         }
       }
 
-      emitter.emit("done")
+      return read(reader)
     },
-  }
+    parse: (data) => {
+      if (
+        (data.choices && data.choices.length === 0) ||
+        !data.choices[0].delta.content
+      ) {
+        return ConversationSignal.CONTINUE
+      }
+
+      const { content } = data.choices[0].delta
+
+      return {
+        type: "delta",
+        content,
+      }
+    },
+  })
 }
 
-export type ConversationGenerator = AsyncGenerator<
-  ChatCompletionResult,
-  void,
-  Omit<ChatCompletionsProps, "model">
->
-
-export async function* startConversation({
+async function* startConversation({
   model,
   ...props
-}: ChatCompletionsProps): ConversationGenerator {
-  let next: Omit<ChatCompletionsProps, "model"> = props
+}: ChatCompletionProps): ConversationGenerator {
+  let next: Omit<ChatCompletionProps, "model"> = props
   while (true) {
     next = yield await chatCompletions({ ...next, model })
   }
+}
+
+export function factoryStartConversationOpenAI(model: string) {
+  return (props: Omit<ChatCompletionProps, "model">) =>
+    startConversation({ model, ...props })
 }

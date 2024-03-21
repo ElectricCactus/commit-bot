@@ -1,9 +1,11 @@
 import { once } from "events"
 import {
-  type ChatCompletionResult,
-  type ChatCompletionsProps,
-  startConversation,
-} from "./openai"
+  Adapters,
+  type Adapter,
+  type ConversationMessage,
+  type ConversationResult,
+  getAdapter,
+} from "./adapter"
 
 const USE_EMOJI = true
 
@@ -38,22 +40,23 @@ const DEFAULT_SYSTEM_PROMPT = `
 `
 
 type PullRequestContext = {
+  adapter: Adapter
   repo: string
   tree: string
   diff: string
 }
 
-type Message = ChatCompletionsProps["messages"][number]
-
 type CodeChatProps = {
-  messages: Message[]
-  model: string
+  adapter: Adapter
+  messages: ConversationMessage[]
 }
 
-export async function* codeChat(
-  props: CodeChatProps,
-): AsyncGenerator<ChatCompletionResult, void, string> {
-  const conversation = await startConversation(props)
+export async function* codeChat({
+  adapter,
+  ...props
+}: CodeChatProps): AsyncGenerator<ConversationResult, void, string> {
+  const { generateConversation } = getAdapter(adapter)
+  const conversation = await generateConversation(props)
 
   let next = await conversation.next()
 
@@ -62,10 +65,10 @@ export async function* codeChat(
       await Promise.all([
         once(next.value.emitter, "message"),
         yield next.value,
-        next.value.emitter.emit("get_message"),
+        next.value.emitter.emit("get.message"),
       ])
 
-    let messages: Message[] = [
+    let messages: ConversationMessage[] = [
       {
         role: "system",
         content: system_message,
@@ -83,9 +86,13 @@ export async function* codeChat(
   }
 }
 
-export async function writePR({ repo, tree, diff }: PullRequestContext) {
-  const model = "gpt-4-turbo-preview"
-  const messages: Message[] = [
+export async function writePR({
+  adapter,
+  repo,
+  tree,
+  diff,
+}: PullRequestContext) {
+  const messages: ConversationMessage[] = [
     {
       role: "system",
       content: DEFAULT_SYSTEM_PROMPT,
@@ -96,22 +103,38 @@ export async function writePR({ repo, tree, diff }: PullRequestContext) {
     },
   ]
 
-  return await codeChat({ model, messages })
+  return await codeChat({
+    adapter,
+    messages,
+  })
 }
 
-export async function branchName({ repo, tree, diff }: PullRequestContext) {
-  const model = "gpt-4-turbo-preview"
-  const messages: Message[] = [
+export async function branchName({
+  adapter,
+  repo,
+  tree,
+  diff,
+}: PullRequestContext) {
+  const messages: ConversationMessage[] = [
     {
       role: "system",
-      content:
-        "Your role is to generate a branch name based on the provided context.",
+      content: `You are a generator for branch names based the provided context (repo name, file tree, diff).
+        You should only output the branch name and nothing else. The application
+        of this will be used to pass directly to a CLI tool. The style should be conventional
+        for consistency. You should only output branch names. If there is anything else in the
+        message like: "Here is the branch name: branch-name", it will be considered an error.
+        If the branch name contains information about generated content like npm/bun/deno/yarn lock files,
+        it will be considered an error. The branch name should be 80 characters or less. If there isn't anything
+        important to include, you should output a random creative name, include some popular culture references.`,
     },
     {
       role: "user",
-      content: `The repo name is ${repo}, the file tree is ${tree}, and the diff is ${diff}`,
+      content: `<repo>${repo}</repo> <tree>${tree}</tree> <diff>${diff}</diff>`,
     },
   ]
 
-  return await codeChat({ model, messages })
+  return await codeChat({
+    adapter,
+    messages,
+  })
 }
