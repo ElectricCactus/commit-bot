@@ -1,13 +1,18 @@
-import { writePR } from "./ai"
+import type { Adapter } from "./adapter"
+import { branchName, writePR } from "./ai"
 import { getDiff, getFileTree, getRepoName } from "./git"
 import { spin } from "./progress"
 
-export async function contentGenerator() {
+type ContentGeneratorProps = {
+  adapter: Adapter
+}
+
+export async function contentGenerator({ adapter }: ContentGeneratorProps) {
   const repo = await getRepoName()
   const tree = await getFileTree()
   const { diff } = await getDiff()
 
-  const generator = await writePR({ repo, tree, diff })
+  const generator = await writePR({ adapter, repo, tree, diff })
 
   return {
     async generate(feedback?: string) {
@@ -25,24 +30,14 @@ export async function contentGenerator() {
           let message = ""
 
           emitter.on("data", async (data) => {
-            if (
-              (data.choices && data.choices.length === 0) ||
-              !data.choices[0].delta.content
-            )
-              return
+            if (data.type !== "delta") return
 
-            const { content } = data.choices[0].delta
-
-            message += content
+            message += data.content
 
             spinner.suffixText = `\n\n${message}`
           })
 
-          emitter.on("unknown", (unknown) => {
-            console.dir({ unknown }, { depth: null })
-          })
-
-          emitter.on("get_message", () => emitter.emit("message", message))
+          emitter.on("get.message", () => emitter.emit("message", message))
 
           await start()
 
@@ -53,6 +48,54 @@ export async function contentGenerator() {
         {
           onSucceed() {
             return "Content generated!"
+          },
+        },
+      )
+    },
+  }
+}
+
+export async function branchGenerator({ adapter }: ContentGeneratorProps) {
+  const repo = await getRepoName()
+  const tree = await getFileTree()
+  const { diff } = await getDiff()
+
+  const generator = await branchName({ adapter, repo, tree, diff })
+
+  return {
+    async generate(feedback?: string) {
+      const { value, done } = await spin("Thinking...", () =>
+        generator.next(...(feedback ? [feedback] : [])),
+      )
+
+      if (done) throw new Error("Cannot generate content, conversation ended")
+
+      const { emitter, start } = value
+
+      return spin(
+        "Generating branch name...",
+        async (spinner) => {
+          let message = ""
+
+          emitter.on("data", async (data) => {
+            if (data.type !== "delta") return
+
+            message += data.content
+
+            spinner.suffixText = `\n\n${message}`
+          })
+
+          emitter.on("get.message", () => emitter.emit("message", message))
+
+          await start()
+
+          emitter.emit("message", message)
+
+          return message
+        },
+        {
+          onSucceed() {
+            return "Generated branch name!"
           },
         },
       )
