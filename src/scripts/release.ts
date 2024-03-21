@@ -2,6 +2,7 @@
 
 import { EOL } from "os"
 import { join } from "path"
+import { $ } from "bun"
 import { parseArgs } from "util"
 import packageJson from "@/../package.json"
 import { changeSizeGenerator } from "@/generator"
@@ -46,15 +47,15 @@ async function main() {
 
   await Bun.write(Bun.stdout, `Writing new version to package.json... ${EOL}`)
   await Bun.write(
-    join("..", "..", "package.json"),
+    join(import.meta.dir, "..", "..", "package.json"),
     JSON.stringify(packageJson, null, 2),
   )
 
   await Bun.write(Bun.stdout, `Committing new version... ${EOL}`)
-  await Bun.$`git add package.json`
-  await Bun.$`git commit -m "chore: bump version to ${packageJson.version} ${EOL} ${response}"`
-  await Bun.$`git tag -a v${packageJson.version} -m "v${packageJson.version}"`
-  await Bun.$`git push --follow-tags`
+  await $`git add package.json`
+  await $`git commit -m "chore: bump version to ${packageJson.version} ${EOL} ${response}"`
+  await $`git tag -a v${packageJson.version} -m "v${packageJson.version}"`
+  await $`git push --follow-tags`
 
   await Bun.write(
     Bun.stdout,
