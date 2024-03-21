@@ -1,7 +1,7 @@
 import { once } from "events"
 import {
-  Adapters,
   type Adapter,
+  Adapters,
   type ConversationMessage,
   type ConversationResult,
   getAdapter,
@@ -126,6 +126,30 @@ export async function branchName({
         If the branch name contains information about generated content like npm/bun/deno/yarn lock files,
         it will be considered an error. The branch name should be 80 characters or less. If there isn't anything
         important to include, you should output a random creative name, include some popular culture references.`,
+    },
+    {
+      role: "user",
+      content: `<repo>${repo}</repo> <tree>${tree}</tree> <diff>${diff}</diff>`,
+    },
+  ]
+
+  return await codeChat({
+    adapter,
+    messages,
+  })
+}
+
+export async function bumpVersion({
+  adapter,
+  repo,
+  tree,
+  diff,
+}: PullRequestContext) {
+  const messages: ConversationMessage[] = [
+    {
+      role: "system",
+      content: `You are a generator for version bumps based on the provided context. Your only responsibility is to output 
+      the change size in the format of "major", "minor", or "patch". Place results inside <answer></answer> tags. Think step by step.`,
     },
     {
       role: "user",

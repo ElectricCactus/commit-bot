@@ -1,12 +1,12 @@
 import createClient from "openapi-fetch"
-import type { components, paths } from "./openai.d"
 import {
+  type ConversationGenerator,
+  type ConversationMessage,
+  type ConversationResult,
   ConversationSignal,
   createConversation,
-  type ConversationResult,
-  type ConversationMessage,
-  type ConversationGenerator,
 } from "./adapter"
+import type { components, paths } from "./openai.d"
 
 let client: ReturnType<typeof createClient<paths>> | undefined
 

@@ -1,10 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk"
 import {
-  createConversation,
+  type ConversationGenerator,
   type ConversationMessage,
   type ConversationResult,
   ConversationSignal,
-  type ConversationGenerator,
+  createConversation,
 } from "./adapter"
 
 let client: Anthropic | undefined

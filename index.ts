@@ -2,10 +2,11 @@
 
 import { EOL } from "os"
 import { parseArgs } from "util"
-import { branchGenerator, contentGenerator } from "@/content"
+import { branchGenerator, prGenerator } from "@/generator"
 import { getDiff, getStatus } from "@/git"
 import { PromptError, createPrompt } from "@/prompts"
 import { shell } from "@/shell"
+import { APIError } from "@anthropic-ai/sdk"
 import { ZodError } from "zod"
 import { fromZodError } from "zod-validation-error"
 import packageJson from "./package.json"
@@ -34,10 +35,10 @@ async function run() {
   }
 
   if (values.branch) {
+    console.log("‼️ Experimental feature")
     const branch = await branchGenerator({
       adapter: "claude_fast",
     })
-    console.log("‼️ Experimental feature")
     await branch.generate()
     process.exit(0)
   }
@@ -63,7 +64,7 @@ async function run() {
     }
   }
 
-  const content = await contentGenerator({
+  const content = await prGenerator({
     adapter: "claude_fast",
   })
 
@@ -119,6 +120,9 @@ process.on("SIGINT", () => {
 function formatError<T>(err: T) {
   if (err instanceof ZodError) {
     return fromZodError(err).toString()
+  }
+  if (err instanceof APIError) {
+    return `Anthropic error: (${err.status}) ${err.message}`
   }
   if (err instanceof PromptError) {
     return `Prompt error: ${err.message}`
