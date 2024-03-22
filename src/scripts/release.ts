@@ -42,7 +42,7 @@ async function main() {
 
   if (values.dry) {
     console.log("Version change:", version, "->", packageJson.version)
-    process.exit()
+    process.exit(0)
   }
 
   await Bun.write(Bun.stdout, `Writing new version to package.json... ${EOL}`)
@@ -62,7 +62,7 @@ async function main() {
     `🎉 Version ${packageJson.version} released! ${EOL}`,
   )
 
-  await Bun.$`echo "RELEASE_VERSION=${packageJson.version}" >> ${process.env.GITHUB_ENV}`
+  await $`echo "RELEASE_VERSION=${packageJson.version}" >> ${process.env.GITHUB_ENV}`
 }
 
 if (import.meta.main) {
