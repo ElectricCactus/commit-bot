@@ -18,3 +18,4 @@ jobs:
       - run: bun lint
       - run: bun compile
       - run: bun release -d
+      - run: git remote get-url origin | awk -F'[:/]' '{gsub(/\.git$/, "", $NF); print $(NF-1)"/"$NF}'
