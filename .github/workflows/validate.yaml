@@ -19,6 +19,3 @@ jobs:
       - run: bun types
       - run: bun lint
       - run: bun compile
-      - run: bun release -d
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
