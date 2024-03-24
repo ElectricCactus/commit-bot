@@ -98,9 +98,7 @@ export const changeSizeGenerator = factoryContentGenerator({
   async provider({ adapter }) {
     const repo = await getRepoName()
     const tree = await getFileTree()
-    const { diff, ...rest } = await getDiff()
-
-    console.log(rest)
+    const { diff } = await getDiff()
 
     return bumpVersion({ adapter, repo, tree, diff })
   },
