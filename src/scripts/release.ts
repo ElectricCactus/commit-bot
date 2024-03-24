@@ -2,10 +2,10 @@
 
 import { EOL } from "os"
 import { join } from "path"
-import { $ } from "bun"
 import { parseArgs } from "util"
 import packageJson from "@/../package.json"
 import { changeSizeGenerator } from "@/generator"
+import { $ } from "bun"
 
 async function main() {
   if (!import.meta.main) {
@@ -21,7 +21,7 @@ async function main() {
 
   await Bun.write(Bun.stdout, `Current version: ${version}${EOL}`)
 
-  const changes = await changeSizeGenerator({ adapter: "claude_fast" })
+  const changes = await changeSizeGenerator({ adapter: "claude" })
   const response = await changes.generate()
 
   const size = response.match(/<answer>(.*)<\/answer>/)?.[1]

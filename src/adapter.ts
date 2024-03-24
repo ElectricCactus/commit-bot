@@ -109,6 +109,7 @@ export const Adapters = {
   openAI: factoryStartConversationOpenAI("gpt-4-turbo-preview"),
   claude: factoryStartConversationClaude("claude-3-opus-20240229"),
   claude_fast: factoryStartConversationClaude("claude-3-haiku-20240307"),
+  claude_avg: factoryStartConversationClaude("claude-3-sonnet-20240229"),
 } as const satisfies Record<string, GenerateConversationFn>
 
 export type Adapter = keyof typeof Adapters

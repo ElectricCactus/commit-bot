@@ -19,11 +19,11 @@ export async function getRepoName() {
 }
 
 export async function getDiff() {
-  const working_diff = await shellText`git diff`
-  const cached_diff = await shellText`git diff --cached`
   let base_diff = ""
   if (process.env.GITHUB_BASE_REF)
     base_diff = await shellText`git diff ${process.env.GITHUB_BASE_REF}`
+  const working_diff = await shellText`git diff`
+  const cached_diff = await shellText`git diff --cached`
 
   return {
     working_diff,
