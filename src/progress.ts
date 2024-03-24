@@ -1,4 +1,3 @@
-import { EOL } from "os"
 import ora, { type Ora } from "ora"
 
 type Props = {

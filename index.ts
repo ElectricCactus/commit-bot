@@ -37,7 +37,7 @@ async function run() {
   if (values.branch) {
     console.log("‼️ Experimental feature")
     const branch = await branchGenerator({
-      adapter: "claude_fast",
+      adapter: "claude",
     })
     await branch.generate()
     process.exit(0)
@@ -65,7 +65,7 @@ async function run() {
   }
 
   const content = await prGenerator({
-    adapter: "claude_fast",
+    adapter: "claude",
   })
 
   let message: string
