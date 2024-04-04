@@ -59,6 +59,8 @@ async function main() {
   )
 
   await Bun.write(Bun.stdout, `Committing new version...${EOL}`)
+  await $`git config --global user.email "release-bot@relentlessreturns.com"`
+  await $`git config --global user.name "Release Bot"`
   await $`git add package.json`
   await $`git commit -m "chore: bump version to ${packageJson.version} ${EOL} ${response}"`
   await $`git tag -a v${packageJson.version} -m "v${packageJson.version}"`
