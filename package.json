@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
+    "@octokit/rest": "^20.1.0",
     "@types/bun": "latest",
     "@types/prompts": "^2.4.9"
   },
