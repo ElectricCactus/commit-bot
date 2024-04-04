@@ -17,3 +17,4 @@ jobs:
       - run: bun types
       - run: bun lint
       - run: bun compile
+      - run: bun release -d
